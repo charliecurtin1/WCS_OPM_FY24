@@ -1,0 +1,71 @@
+---
+title: "FY24 Risk Summaries Visualizations"
+output: html_document
+---
+
+```{r, message = FALSE}
+# import libraries
+library(tidyverse)
+library(sf)
+library(terra)
+library(here)
+
+# set input paths
+risk_dir <- file.path("C:", "Users", "Charlie", "Desktop", "ArcGIS", "data", "WCS_OPM_FY24", "6_RiskSummaries")
+risk_gdb <- file.path(risk_dir, "FY24_Summaries.gdb")
+
+# create output directory
+if (!dir.exists(file.path(risk_dir, "risk_summaries_tables"))){
+  dir.create(file.path(risk_dir, "risk_summaries_tables"))
+}else{
+  print("directory exists")
+}
+
+```
+
+```{r}
+# # read in a layer from gdb
+# print(st_layers(risk_gdb))
+# hu_comm <- st_read(dsn = risk_gdb, layer = "HU_Communities")
+
+# store vector of layer names
+layer_names <- st_layers(risk_gdb)$name
+
+# export feature classes as CSVs
+for (fc in layer_names) {
+
+  # read in layer, drop geometry columns
+  fc_df <- st_read(dsn = risk_gdb, layer = fc, quiet = TRUE) %>%
+    st_drop_geometry() %>% 
+    select(-c(Shape_Length, Shape_Area))
+  
+  # write csv with layer name
+  write_csv(fc_df, file.path(risk_dir, "risk_summaries_tables", paste0(fc, ".csv")))
+
+}
+  
+```
+
+```{r, message = FALSE}
+## read in CSVs to environment
+risk_tables <- file.path(risk_dir, "risk_summaries_tables")
+risk_csvs <- list.files(risk_tables, pattern = "csv", full.names = TRUE)
+
+# iterate through list of csvs and read in to environment
+for (csv in risk_csvs){
+  
+  csv_name = tools::file_path_sans_ext(basename(csv))
+  print(csv_name)
+  
+  assign(csv_name, read_csv(csv), envir = .GlobalEnv)
+
+}
+```
+
+```{r}
+# create name short and state column in communities
+HU_Communities[c("name_short", "state")] <- str_split_fixed(HU_Communities$NAME, ", ", 2)
+
+HU_Communities <- HU_Communities %>% mutate()
+```
+
